@@ -88,6 +88,66 @@ class img
 	public static function deinit()
 	{
 	}
+	
+	function make_cached_thumb($orig_path,$cache_path,$width,$height,$maxwidth,$maxheight,$ext,$request_path)
+	{
+		if ($height > $width) 
+		{   
+			$ratio = $maxheight / $height;  
+			$newheight = $maxheight;
+			$newwidth = $width * $ratio; 
+			$writex = round(($maxwidth - $newwidth) / 2);
+			$writey = 0;
+		}
+		else 
+		{
+			$ratio = $maxwidth / $width;   
+			$newwidth = $maxwidth;  
+			$newheight = $height * $ratio;   
+			$writex = 0;
+			$writey = round(($maxheight - $newheight) / 2);
+		}
+
+		# load the image, using the right format
+		$newimg = imagecreatetruecolor($newwidth,$newheight);
+		$types = array(
+			'gif'=>IMG_GIF,
+			'jpg'=>IMG_JPG,
+			'png'=>IMG_PNG,
+		);
+		$mime   = image_type_to_mime_type($types[$ext]);
+		switch($ext)
+		{
+			case 'jpg':
+				$img = imagecreatefromjpeg($orig_path);
+				imagecopyresampled($newimg,$img,0,0,0,0,$newwidth,$newheight, $width, $height);
+				imagejpeg($newimg,$cache_path,95);
+				break;
+			case 'gif':
+				$img = imagecreatefromgif($orig_path);
+				imagecopyresampled($newimg,$img,0,0,0,0,$newwidth,$newheight, $width, $height);
+				imagegif($newimg,$cache_path);
+				break;
+			case 'png':
+				$img = imagecreatefrompng($orig_path);
+				imagecopyresampled($newimg,$img,0,0,0,0,$newwidth,$newheight, $width, $height);
+				imagepng($newimg,$cache_path);
+				break;
+			default:
+				exit('unknown format');	
+				break;
+		}
+
+		//$output file is the path/filename where you wish to save the file.  
+		header('Pragma: no-cache');
+		header('Expires: Thu, 19 Nov 1981 08:52:00 GMT');
+		header('Cache-Control: must-revalidate, post-check=0, pre-check=0');
+		header('Cache-Control: no-store, no-cache, must-revalidate');
+		header("Content-Type: $mime"); 
+		header("Content-Disposition: inline; filename=\"".$_REQUEST['thumb']."\";" ); 
+		header("Content-Transfer-Encoding: binary"); 
+		echo(file_get_contents($cache_path));
+	}
 }
 
 ?>
